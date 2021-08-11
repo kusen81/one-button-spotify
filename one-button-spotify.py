@@ -4,21 +4,24 @@ import spotipy
 import spotipy.util as util
 import time
 import json
+import subprocess
+import os
 
 Button.was_held = False
 
 button_prev = Button(pin=9,hold_time=0.5,hold_repeat=0.2)
 button_playpause = Button(pin=10,hold_time=0.5)
 button_next = Button(pin=11,hold_time=0.5,hold_repeat=0.2)
+button_visual = Button(pin=5,hold_time=0.5,hold_repeat=0.2)
+button_volume = Button(pin=6,hold_time=0.5,hold_repeat=0.2)
 
-username = ''
-password = ''
-playlist = ''
+username = 'xxxYourUserNamexxx'
+password = 'xxxYourPasswordxxx'
+playlist = 'xxxYourPlayListURIfromSpotifyxxx'
+spotconnect_device_name = 'xxxYourTargetSpotifyConnectDeviceNamexxx'
 
-spotconnect_device_name = ''
-
-SP_CLIENT_ID = ''
-SP_CLIENT_SECRET = ''
+SP_CLIENT_ID = 'xxxClientIDofYourAppxxx'
+SP_CLIENT_SECRET = 'xxxClientSecretofYourAppxxx'
 SP_REDIRECT_URI = 'http://localhost/'
 
 global token
@@ -26,11 +29,16 @@ global playing
 global device
 global volume
 global was_held
+global pro
+global visual_type
+global visual_type_num
 
 token = ''
 playing = False
 device = ''
 scope = 'user-library-read, user-read-playback-state, user-modify-playback-state'
+visual_type = ['scroll', 'energy', 'spectrum']
+visual_type_num = 0
 
 def spotStart():
     print('spotStart called')
@@ -46,6 +54,8 @@ def spotDevices():
         global device
         sp = spotipy.Spotify(auth=token)
         devices = sp.devices()
+        print("devices:")
+        print(devices)
         devices = devices['devices']
         print(devices)
         dictionary = {}
@@ -53,7 +63,7 @@ def spotDevices():
             dictionary[item['name']] = item['id']
         device = dictionary[spotconnect_device_name]
         print('device resolved as ' + device)
-        volume = 20
+        volume = 50
         sp.volume(volume, device_id=device) # Set init volume
     except:
         # empty token
@@ -68,19 +78,14 @@ def spotPlay():
     try:
         if playing:
             print('already playing - pause')
-            # if we're already playing, pause
             sp = spotipy.Spotify(auth=token)
-            #sp.next_track()
             sp.pause_playback(device_id=device)
             playing = False
             time.sleep(1)
         else:
-            # if we're not playing, play the playlist, turn on shuffle and skip to a new (random) track
             print('not playing - trying to start')
             sp = spotipy.Spotify(auth=token)
-            #sp.shuffle(False)
             sp.start_playback(device_id=device,context_uri=playlist)
-            #sp.next_track()
             playing = True
             time.sleep(1)
     except:
@@ -122,66 +127,42 @@ def spotPrev(button_prev):
         print(e)
         token = ''
 
-def spotVolumeUp(button_next):
+def spotVisual(button_visual):
+    print('spotVisual called')
+    global pro
+    global visual_type
+    global visual_type_num
+
+    os.system("sudo pkill -9 -P " + str(pro.pid))
+
+    if visual_type_num == len(visual_type) - 1:
+        visual_type_num = 0
+    else:
+        visual_type_num = visual_type_num + 1
+    print("visual_type_num " + str(visual_type_num))
+    pro = subprocess.Popen(['sudo', '/usr/bin/python3', '/home/pi/dancyPi-audio-reactive-led/python/visualization.py', visual_type[visual_type_num]], stdout=subprocess.PIPE, stdin=subprocess.PIPE)
+    time.sleep(1)
+
+def spotVolumeUp(button_volume):
     print('spotVolumeUp called')
     global token
     global playing
     global volume
-    button_next.was_held = True
 
     try:
         sp = spotipy.Spotify(auth=token)
-        if not volume == 100:
-            volume += 5
-            sp.volume(volume, device_id=device)
-        #time.sleep(0.2)
-    except:
-        # empty token
-        print('something is not right - emptying token')
-        token = ''
-
-def spotVolumeDown():
-    print('spotVolumeDown called')
-    global token
-    global playing
-    global volume
-    button_prev.was_held = True
-
-    try:
-        sp = spotipy.Spotify(auth=token)
-        if not volume == 0:
-            volume -= 5
-            sp.volume(volume, device_id=device)
-        #time.sleep(0.2)
-    except:
-        # empty token
-        print('something is not right - emptying token')
-        token = ''
-
-
-'''
-def spotStop():
-    print('spotStop called')
-    global token
-    global playing
-    try:
-        if playing:
-            # stop(pause) playing
-            print('currently playing - trying to stop')
-            sp = spotipy.client.Spotify(auth=token)
-            sp.pause_playback()
-            playing = False
-            time.sleep(1)
+        if volume == 100:
+            volume = 5
         else:
-            # if not playing, do nothing
-            print('not playing - doing nothing')
-            pass
+            volume += 5
+
+        sp.volume(volume, device_id=device)
     except:
         # empty token
         print('something is not right - emptying token')
         token = ''
-'''
 
+pro = subprocess.Popen(['sudo', '/usr/bin/python3', '/home/pi/dancyPi-audio-reactive-led/python/visualization.py', visual_type[visual_type_num]], stdout=subprocess.PIPE, stdin=subprocess.PIPE)
 idle = 0
 
 while True:
@@ -193,20 +174,10 @@ while True:
         token = ''
     else:
         idle += 1
-        #time.sleep(0.25)
+        time.sleep(0.25)
 
     button_playpause.when_released = spotPlay
-    button_prev.when_held = spotVolumeDown
     button_prev.when_released = spotPrev
-    button_next.when_held = spotVolumeUp
+    button_volume.when_released = spotVolumeUp
     button_next.when_released = spotNext
-
-'''
-try:
-    do_something()
-except spotipy.client.SpotifyException:
-    # re-authenticate when token expires
-    token = ...
-    sp = spotipy.Spotify(auth=token)
-    do_something()
-'''
+    button_visual.when_released = spotVisual
