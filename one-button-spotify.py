@@ -7,28 +7,25 @@ import json
 import subprocess
 import os
 
-Button.was_held = False
-
 button_prev = Button(pin=9,hold_time=0.5,hold_repeat=0.2)
 button_playpause = Button(pin=10,hold_time=0.5)
 button_next = Button(pin=11,hold_time=0.5,hold_repeat=0.2)
 button_visual = Button(pin=5,hold_time=0.5,hold_repeat=0.2)
 button_volume = Button(pin=6,hold_time=0.5,hold_repeat=0.2)
 
-username = 'xxxYourUserNamexxx'
-password = 'xxxYourPasswordxxx'
-playlist = 'xxxYourPlayListURIfromSpotifyxxx'
-spotconnect_device_name = 'xxxYourTargetSpotifyConnectDeviceNamexxx'
+username = ''
+password = ''
+playlist = ''
+spotconnect_device_name = ''
 
-SP_CLIENT_ID = 'xxxClientIDofYourAppxxx'
-SP_CLIENT_SECRET = 'xxxClientSecretofYourAppxxx'
+SP_CLIENT_ID = ''
+SP_CLIENT_SECRET = ''
 SP_REDIRECT_URI = 'http://localhost/'
 
 global token
 global playing
 global device
 global volume
-global was_held
 global pro
 global visual_type
 global visual_type_num
@@ -98,12 +95,10 @@ def spotNext(button_next):
     global token
     global playing
     try:
-        if not button_next.was_held:
-            sp = spotipy.Spotify(auth=token)
-            sp.next_track(device_id=device)
-            playing = True
-            time.sleep(1)
-        button_next.was_held = False
+        sp = spotipy.Spotify(auth=token)
+        sp.next_track(device_id=device)
+        playing = True
+        time.sleep(1)
     except Exception as e:
         # empty token
         print('something is not right - emptying token')
@@ -115,12 +110,10 @@ def spotPrev(button_prev):
     global token
     global playing
     try:
-        if not button_prev.was_held:
-            sp = spotipy.Spotify(auth=token)
-            sp.previous_track(device_id=device)
-            playing = True
-            time.sleep(1)
-        button_prev.was_held = False
+        sp = spotipy.Spotify(auth=token)
+        sp.previous_track(device_id=device)
+        playing = True
+        time.sleep(1)
     except Exception as e:
         # empty token
         print('something is not right - emptying token')
